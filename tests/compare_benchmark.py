@@ -18,7 +18,7 @@ def generate_test_data(num_orders):
 def run_benchmark(num_orders=100_000):
     test_data = generate_test_data(num_orders)
     
-    print("\n[1] TEST MẢNG THUẦN O(N)")
+    print(f"\n[1] TEST MẢNG THUẦN O(N) VỚI {num_orders:,} LỆNH")
     naive_book = NaiveOrderBook()
     start_naive = time.time()
     for o in test_data:
@@ -28,7 +28,7 @@ def run_benchmark(num_orders=100_000):
     print(f"-> Khớp được: {len(naive_book.trades):,} giao dịch")
 
     print("\n[2] TEST KIẾN TRÚC HEAP + HASH")
-    heap_book = OrderBook()
+    heap_book = OrderBook() 
     start_heap = time.time()
     for o in test_data:
         heap_book.add_order(o['id'], o['is_buy'], o['price'], o['qty'])
@@ -36,8 +36,6 @@ def run_benchmark(num_orders=100_000):
     print(f"-> Chạy mất: {time_heap:.4f} s")
     print(f"-> Khớp được: {len(heap_book.trades):,} giao dịch")
 
-    print("\n--- TỔNG KẾT ---")
-    if time_heap > 0:
         speedup = time_naive / time_heap
         print(f"Heap xử lý nhanh gấp {speedup:.1f} lần")
 
