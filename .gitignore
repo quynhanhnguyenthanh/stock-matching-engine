@@ -1,1 +1,14 @@
+# Bỏ qua thư mục môi trường ảo
+venv/
+env/
 
+# Bỏ qua các file rác của Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Bỏ qua biến môi trường
+.env
+
+# Bỏ qua file hệ điều hành
+.DS_Store
