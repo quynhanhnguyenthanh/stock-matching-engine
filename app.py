@@ -117,7 +117,7 @@ with col_left:
     st.header("Portfolio Giả Lập")
 
     st.metric(
-        label="Số dư tiền mặt",
+        label="Số dư hiện có",
         value=f"{st.session_state.balance:,.0f} VNĐ"
     )
 
