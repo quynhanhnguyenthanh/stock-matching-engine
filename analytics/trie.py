@@ -1,26 +1,26 @@
 class TrieNode:
     """
-    nút của cây tiền tố.
-    áp dụng __slots__ để tiết kiệm RAM nếu nạp hàng chục nghìn mã chứng khoán.
+    Nút của cây tiền tố.
+    Áp dụng __slots__ để tiết kiệm RAM nếu nạp hàng chục nghìn mã chứng khoán.
     """
     __slots__ = ['children', 'is_end_of_word']
 
     def __init__(self):
-        # lưu các node con dưới dạng hash map (dict)
+        # lưu các node con dưới dạng hash map 
         self.children = {}
         # cờ đánh dấu kết thúc một mã hợp lệ (ví dụ: gõ tới 'VNM' là kết thúc)
         self.is_end_of_word = False
 
 class Trie:
     """
-    cấu trúc dữ liệu trie (cây tiền tố) để gợi ý mã cổ phiếu (autocomplete).
+    Cấu trúc dữ liệu Trie (Cây tiền tố) để gợi ý mã cổ phiếu (Autocomplete).
     """
     def __init__(self):
         self.root = TrieNode()
 
     def insert(self, word: str) -> None:
         """
-        chèn một mã cổ phiếu mới vào cây.
+        Chèn một mã cổ phiếu mới vào cây.
         
         Time Complexity: 
             O(L) - L là độ dài của từ khóa.
@@ -34,7 +34,7 @@ class Trie:
 
     def _dfs(self, node: TrieNode, prefix: str, results: list, limit: int) -> None:
         """
-        thuật toán tìm kiếm theo chiều sâu (DFS) để gom các kết quả gợi ý.
+        Thuật toán tìm kiếm theo chiều sâu (DFS) để gom các kết quả gợi ý.
         """
         if len(results) >= limit:
             return
@@ -46,15 +46,15 @@ class Trie:
 
     def autocomplete(self, prefix: str, limit: int = 10) -> list:
         """
-        tìm và trả về danh sách các mã cổ phiếu bắt đầu bằng tiền tố (prefix).
+        Tìm và trả về danh sách các mã cổ phiếu bắt đầu bằng tiền tố (prefix).
         
         Args:
-            prefix: chuỗi người dùng đang gõ (ví dụ: 'VC').
-            limit: số lượng kết quả tối đa trả về.
+            prefix: Chuỗi người dùng đang gõ (ví dụ: 'VC').
+            limit: Số lượng kết quả tối đa trả về.
             
         Time Complexity: 
             O(L + V) - L là độ dài tiền tố, V là số lượng node con trùng khớp.
-            cực kỳ nhanh so với việc lặp mảng O(N).
+            Cực kỳ nhanh so với việc lặp mảng O(N).
         """
         node = self.root
         prefix = prefix.upper()
