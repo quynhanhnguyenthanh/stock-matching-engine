@@ -92,7 +92,6 @@ with col_left:
         "Gõ hoặc chọn mã cổ phiếu:",
         options=all_symbols,
         index=0,
-        help="hệ thống sử dụng trie để tối ưu tìm kiếm"
     )
 
     st.info(f"Đang xem chi tiết mã: **{selected_symbol}**")
