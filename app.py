@@ -92,7 +92,7 @@ col_left, col_right = st.columns([1, 2])
 
 with col_left:
 
-    st.header("1️Tìm kiếm & Đặt lệnh")
+    st.header("Tìm kiếm & Đặt lệnh")
 
     all_symbols = [
         'FPT', 'VNM', 'VIC', 'HPG', 'SSI',
