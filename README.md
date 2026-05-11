@@ -22,5 +22,5 @@ The system is designed to overcome the limitations of standard linear data struc
 
 **Clone the repository**
 ```bash
-git clone [https://github.com/quynhanhnguyenthanh/stock-matching-engine.git]
+git clone https://github.com/quynhanhnguyenthanh/stock-matching-engine.git
 cd stock-matching-engine
