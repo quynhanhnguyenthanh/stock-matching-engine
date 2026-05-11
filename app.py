@@ -76,14 +76,6 @@ if 'engine' not in st.session_state:
 
 st.title("Stock Matching Engine Dashboard")
 
-st.markdown(
-    """
-    Đồ án môn IT003.Q21.TTNT  
-    Ứng dụng:
-    **Heap, Hash Map, Trie & Segment Tree**
-    """
-)
-
 col_left, col_right = st.columns([1, 2])
 
 # =========================================================
