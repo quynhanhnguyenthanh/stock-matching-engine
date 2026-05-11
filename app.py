@@ -225,16 +225,16 @@ with col_left:
                     # trade history
                     st.session_state.trade_history.append({
 
-                        "Time": time.strftime("%H:%M:%S"),
-                        "Symbol": selected_symbol,
-                        "Side": o_side,
-                        "Price": o_price,
-                        "Quantity": o_qty
+                    "Thời Gian": time.strftime("%H:%M:%S"),
+                    "Mã CP": selected_symbol,
+                    "Loại": o_side,
+                    "Giá": o_price,
+                    "Khối Lượng": o_qty
                     })
 
                     st.success(
                         f"""
-                        ✅ Khớp lệnh/Thêm vào sổ thành công
+                        ✅ Khớp lệnh
                         trong {(end_t - start_t)*1000:.4f} ms
                         """
                     )
@@ -302,7 +302,7 @@ with col_left:
 
 with col_right:
 
-    st.header(f"Sổ Lệnh (Order Book) - {selected_symbol}")
+    st.header(f"Sổ Lệnh - {selected_symbol}")
 
     book = st.session_state.engine.order_books.get(
         selected_symbol
@@ -472,7 +472,7 @@ with col_right:
     st.divider()
 
     st.header(
-        "Phân tích Kỹ thuật (Segment Tree Demo)"
+        "Phân tích Kỹ thuật"
     )
 
     dummy_candles = pd.DataFrame({
