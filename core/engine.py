@@ -3,8 +3,8 @@ from core.order_book import OrderBook
 
 class MatchingEngine:
     """
-    bộ máy khớp lệnh trung tâm.
-    quản lý nhiều sổ lệnh (OrderBook) cho nhiều mã cổ phiếu khác nhau và
+    Bộ máy khớp lệnh trung tâm.
+    Quản lý nhiều sổ lệnh (OrderBook) cho nhiều mã cổ phiếu khác nhau và
     thực thi thuật toán đối khớp liên tục.
     """
 
@@ -17,13 +17,11 @@ class MatchingEngine:
 
     def process_order(self, order: Order) -> None:
         """
-        tiếp nhận lệnh mới, phân loại vào sổ lệnh tương ứng và kích hoạt thuật toán khớp lệnh.
+        Tiếp nhận lệnh mới, phân loại vào sổ lệnh tương ứng và kích hoạt thuật toán khớp lệnh.
         
-        Mẹo xử lý Market Order (Lệnh thị trường):
-            - nếu là BUY Market: Gán price = float('inf') (Mua bằng mọi giá).
-            - nếu là SELL Market: Gán price = 0.0 (Bán bằng mọi giá).
-            -> nhờ thủ thuật này, Market Order sẽ tự động nổi lên đỉnh Heap và 
-               dùng chung được thuật toán khớp lệnh của Limit Order mà không cần viết thêm code.
+        Quy tắc xử lý Market Order (Lệnh thị trường):
+            - Nếu là BUY Market: Gán price = float('inf') (Mua bằng mọi giá).
+            - Nếu là SELL Market: Gán price = 0.0 (Bán bằng mọi giá).
                
         Time Complexity: 
             O(log N) cho việc thêm lệnh + O(K * log N) cho việc khớp lệnh (K là số lượng lệnh đối ứng bị khớp).
@@ -46,7 +44,7 @@ class MatchingEngine:
 
     def cancel_order(self, symbol: str, order_id: str) -> bool:
         """
-        gọi hàm hủy lệnh (Lazy Deletion) trên sổ lệnh tương ứng.
+        Gọi hàm hủy lệnh (Lazy Deletion) trên sổ lệnh tương ứng.
         """
         if symbol in self.order_books:
             return self.order_books[symbol].cancel_order(order_id)
@@ -54,8 +52,8 @@ class MatchingEngine:
 
     def _match(self, book: OrderBook) -> None:
         """
-        [thuật toán lõi] vòng lặp đối khớp lệnh.
-        tuân thủ quy tắc: giá mua >= giá bán.
+        Vòng lặp đối khớp lệnh.
+        Tuân thủ quy tắc: Giá mua >= Giá bán.
         """
         # vòng lặp chạy liên tục cho đến khi 2 bên không thể khớp được nữa
         while True:
