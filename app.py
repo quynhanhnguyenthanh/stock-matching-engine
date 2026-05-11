@@ -181,21 +181,10 @@ with col_left:
             if o_side == "BUY":
 
                 if st.session_state.balance < estimated_cost:
-
-                    st.error(
-                        "❌ Không đủ số dư để đặt lệnh mua"
-                    )
-
+                    st.error("❌ Không đủ số dư để đặt lệnh mua")
                 else:
-
                     st.session_state.balance -= estimated_cost
-
-                    st.session_state.portfolio[selected_symbol] = (
-                        st.session_state.portfolio.get(
-                            selected_symbol,
-                            0
-                        ) + o_qty
-                    )
+                    st.session_state.portfolio[selected_symbol] = st.session_state.portfolio.get(selected_symbol, 0) + o_qty
 
                     new_order = Order(
                         order_id=uuid.uuid4().hex[:6].upper(),
@@ -207,51 +196,34 @@ with col_left:
                     )
 
                     start_t = time.perf_counter()
-
-                    st.session_state.engine.process_order(
-                        new_order
-                    )
-
+                    st.session_state.engine.process_order(new_order)
                     end_t = time.perf_counter()
 
-                    # trade history với định dạng số đẹp
                     st.session_state.trade_history.append({
-
-                    "Thời Gian": time.strftime("%H:%M:%S"),
-                    "Mã CP": selected_symbol,
-                    "Loại": o_side,
-                    "Giá": f"{o_price:,.0f}",
-                    "Khối Lượng": f"{o_qty:,}"
+                        "Thời Gian": time.strftime("%H:%M:%S"),
+                        "Mã CP": selected_symbol,
+                        "Loại": o_side,
+                        "Giá": f"{o_price:,.0f}",
+                        "Khối Lượng": f"{o_qty:,}"
                     })
 
-                    st.success(
-                        f"""
-                        ✅ Khớp lệnh
-                        trong {(end_t - start_t)*1000:.4f} ms
-                        """
-                    )
+                    st.success(f"✅ Khớp lệnh trong {(end_t - start_t)*1000:.4f} ms")
+                    st.rerun()
 
             # =========================
-            # SELL ORDER
+            # SELL ORDER (CHỈNH SỬA Ở ĐÂY)
             # =========================
 
             else:
 
-                owned_qty = st.session_state.portfolio.get(
-                    selected_symbol,
-                    0
-                )
+                owned_qty = st.session_state.portfolio.get(selected_symbol, 0)
 
                 if owned_qty < o_qty:
-
-                    st.error(
-                        "❌ Không đủ cổ phiếu để bán"
-                    )
-
+                    st.error("❌ Không đủ cổ phiếu để bán")
                 else:
-
+                    # Trừ cổ phiếu
                     st.session_state.portfolio[selected_symbol] -= o_qty
-
+                    # Cộng tiền vào số dư (Balance)
                     st.session_state.balance += estimated_cost
 
                     new_order = Order(
@@ -264,16 +236,10 @@ with col_left:
                     )
 
                     start_t = time.perf_counter()
-
-                    st.session_state.engine.process_order(
-                        new_order
-                    )
-
+                    st.session_state.engine.process_order(new_order)
                     end_t = time.perf_counter()
 
-                    # trade history
                     st.session_state.trade_history.append({
-
                         "Thời Gian": time.strftime("%H:%M:%S"),
                         "Mã CP": selected_symbol,
                         "Loại": o_side,
@@ -281,12 +247,8 @@ with col_left:
                         "Khối Lượng": f"{o_qty:,}"
                     })
 
-                    st.success(
-                        f"""
-                        ✅ Khớp lệnh/Thêm vào sổ thành công
-                        trong {(end_t - start_t)*1000:.4f} ms
-                        """
-                    )
+                    st.success(f"✅ Khớp lệnh/Thêm vào sổ thành công trong {(end_t - start_t)*1000:.4f} ms")
+                    st.rerun() # Gọi lại app để làm mới số dư trên UI ngay lập tức
 
 # =========================================================
 # RIGHT PANEL
@@ -335,8 +297,6 @@ with col_right:
                 .sort_values("Giá Bán")
                 .head(5)
             )
-
-            df_asks = df_asks.iloc[::-1]
 
         else:
 
