@@ -79,29 +79,72 @@ with col_right:
     if not book:
         st.info("Sổ lệnh trống. Hãy đặt lệnh đầu tiên")
     else:
+        # xử lý danh sách bán (ask)
         asks = []
         for price, ts, oid in book.sell_heap:
             order = book.orders_map.get(oid)
             if order and not order.is_canceled and order.quantity > 0:
-                asks.append({"Giá Bán": order.price, "Khối Lượng": order.quantity, "ID": oid})
-        df_asks = pd.DataFrame(asks).sort_values("Giá Bán").head(5)
-        df_asks = df_asks.iloc[::-1] 
-        
+                asks.append({
+                    "Giá Bán": order.price,
+                    "Khối Lượng": order.quantity,
+                    "ID": oid
+                })
+
+        # kiểm tra nếu có dữ liệu mới sắp xếp
+        if asks:
+            df_asks = pd.DataFrame(asks).sort_values("Giá Bán").head(5)
+            df_asks = df_asks.iloc[::-1]
+        else:
+            df_asks = pd.DataFrame(
+                columns=["Giá Bán", "Khối Lượng", "ID"]
+            )
+
+        # xử lý danh sách mua (bid)
         bids = []
         for neg_price, ts, oid in book.buy_heap:
             order = book.orders_map.get(oid)
             if order and not order.is_canceled and order.quantity > 0:
-                bids.append({"Giá Mua": -neg_price, "Khối Lượng": order.quantity, "ID": oid})
-        df_bids = pd.DataFrame(bids).sort_values("Giá Mua", ascending=False).head(5)
+                bids.append({
+                    "Giá Mua": -neg_price,
+                    "Khối Lượng": order.quantity,
+                    "ID": oid
+                })
+
+        # kiểm tra nếu có dữ liệu mới sắp xếp
+        if bids:
+            df_bids = (
+                pd.DataFrame(bids)
+                .sort_values("Giá Mua", ascending=False)
+                .head(5)
+            )
+        else:
+            df_bids = pd.DataFrame(
+                columns=["Giá Mua", "Khối Lượng", "ID"]
+            )
 
         col_bid, col_ask = st.columns(2)
+
         with col_bid:
-            st.markdown("<h4 style='color: green; text-align: center;'>BÊN MUA (BID)</h4>", unsafe_allow_html=True)
-            st.dataframe(df_bids, use_container_width=True, hide_index=True)
-            
+            st.markdown(
+                "<h4 style='color: green; text-align: center;'>BÊN MUA (BID)</h4>",
+                unsafe_allow_html=True
+            )
+            st.dataframe(
+                df_bids,
+                use_container_width=True,
+                hide_index=True
+            )
+
         with col_ask:
-            st.markdown("<h4 style='color: red; text-align: center;'>BÊN BÁN (ASK)</h4>", unsafe_allow_html=True)
-            st.dataframe(df_asks, use_container_width=True, hide_index=True)
+            st.markdown(
+                "<h4 style='color: red; text-align: center;'>BÊN BÁN (ASK)</h4>",
+                unsafe_allow_html=True
+            )
+            st.dataframe(
+                df_asks,
+                use_container_width=True,
+                hide_index=True
+            )
 
     st.divider()
     
