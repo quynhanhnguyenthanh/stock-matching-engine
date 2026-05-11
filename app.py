@@ -24,8 +24,8 @@ if 'engine' not in st.session_state:
     st.session_state.engine = MatchingEngine()
     st.session_state.trie = Trie()
 
-    # portfolio giả lập
-    st.session_state.balance = 1_000_000
+    # portfolio giả lập (cấp vốn 100 triệu vnđ)
+    st.session_state.balance = 100_000_000
 
     st.session_state.portfolio = {
         'FPT': 500,
@@ -44,17 +44,17 @@ if 'engine' not in st.session_state:
     for sym in symbols:
         st.session_state.trie.insert(sym)
 
-    # tạo dữ liệu mẫu
+    # tạo dữ liệu mẫu với giá thực tế (hàng chục nghìn vnđ)
     for _ in range(200):
 
         sym = random.choice(['FPT', 'VNM', 'VIC'])
         side = random.choice(['BUY', 'SELL'])
 
-        price = round(
-            random.uniform(80.0, 100.0)
+        # giá ngẫu nhiên với bước giá 100 vnđ
+        price = float(
+            random.randrange(80000, 100000, 100)
             if sym == 'FPT'
-            else random.uniform(50.0, 70.0),
-            1
+            else random.randrange(50000, 70000, 100)
         )
 
         qty = random.randint(1, 50) * 100
@@ -103,7 +103,7 @@ with col_left:
         "Gõ hoặc chọn mã cổ phiếu:",
         options=all_symbols,
         index=0,
-        help="Hệ thống sử dụng Trie để tối ưu tìm kiếm"
+        help="hệ thống sử dụng trie để tối ưu tìm kiếm"
     )
 
     st.info(f"Đang xem chi tiết mã: **{selected_symbol}**")
@@ -163,8 +163,8 @@ with col_left:
         o_price = st.number_input(
             "Giá (VNĐ - bỏ qua nếu Market)",
             min_value=0.0,
-            value=90.0,
-            step=0.1
+            value=90000.0,
+            step=100.0
         )
 
         o_qty = st.number_input(
@@ -222,14 +222,14 @@ with col_left:
 
                     end_t = time.perf_counter()
 
-                    # trade history
+                    # trade history với định dạng số đẹp
                     st.session_state.trade_history.append({
 
                     "Thời Gian": time.strftime("%H:%M:%S"),
                     "Mã CP": selected_symbol,
                     "Loại": o_side,
-                    "Giá": o_price,
-                    "Khối Lượng": o_qty
+                    "Giá": f"{o_price:,.0f}",
+                    "Khối Lượng": f"{o_qty:,}"
                     })
 
                     st.success(
@@ -282,11 +282,11 @@ with col_left:
                     # trade history
                     st.session_state.trade_history.append({
 
-                        "Time": time.strftime("%H:%M:%S"),
-                        "Symbol": selected_symbol,
-                        "Side": o_side,
-                        "Price": o_price,
-                        "Quantity": o_qty
+                        "Thời Gian": time.strftime("%H:%M:%S"),
+                        "Mã CP": selected_symbol,
+                        "Loại": o_side,
+                        "Giá": f"{o_price:,.0f}",
+                        "Khối Lượng": f"{o_qty:,}"
                     })
 
                     st.success(
@@ -331,8 +331,8 @@ with col_right:
             ):
 
                 asks.append({
-                    "Giá Bán": order.price,
-                    "Khối Lượng": order.quantity,
+                    "Giá Bán": f"{order.price:,.0f}",
+                    "Khối Lượng": f"{order.quantity:,}",
                     "ID": oid
                 })
 
@@ -373,8 +373,8 @@ with col_right:
             ):
 
                 bids.append({
-                    "Giá Mua": -neg_price,
-                    "Khối Lượng": order.quantity,
+                    "Giá Mua": f"{-neg_price:,.0f}",
+                    "Khối Lượng": f"{order.quantity:,}",
                     "ID": oid
                 })
 
@@ -475,6 +475,7 @@ with col_right:
         "Phân tích Kỹ thuật"
     )
 
+    # cập nhật nến với giá trị thật (nhân 1000)
     dummy_candles = pd.DataFrame({
 
         'Date': pd.date_range(
@@ -482,13 +483,13 @@ with col_right:
             periods=10
         ),
 
-        'Open': [88, 89, 90, 89, 91, 92, 91, 93, 94, 93],
+        'Open': [88000, 89000, 90000, 89000, 91000, 92000, 91000, 93000, 94000, 93000],
 
-        'High': [90, 91, 91, 92, 93, 94, 93, 95, 96, 95],
+        'High': [90000, 91000, 91000, 92000, 93000, 94000, 93000, 95000, 96000, 95000],
 
-        'Low': [87, 88, 88, 88, 90, 91, 90, 92, 92, 91],
+        'Low': [87000, 88000, 88000, 88000, 90000, 91000, 90000, 92000, 92000, 91000],
 
-        'Close': [89, 90, 89, 91, 92, 91, 93, 94, 93, 95]
+        'Close': [89000, 90000, 89000, 91000, 92000, 91000, 93000, 94000, 93000, 95000]
     })
 
     fig = go.Figure(data=[
