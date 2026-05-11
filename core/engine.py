@@ -6,7 +6,6 @@ import random
 import time
 
 from core.order import Order
-from core.engine import MatchingEngine
 from analytics.trie import Trie
 
 st.set_page_config(
