@@ -27,8 +27,8 @@ if 'engine' not in st.session_state:
         order = Order(uuid.uuid4().hex[:6], sym, side, 'LIMIT', price, qty)
         st.session_state.engine.process_order(order)
 
-st.title("📈 High-Frequency Trading Dashboard")
-st.markdown("Đồ án môn CTDL&TT (IT003) - Ứng dụng **Heap, Hash Map, Trie & Segment Tree**.")
+st.title("Stock Matching Engine Dashboard")
+st.markdown("Đồ án môn IT003.Q21.TTNT - Ứng dụng **Heap, Hash Map, Trie & Segment Tree**.")
 
 col_left, col_right = st.columns([1, 2])
 
@@ -53,7 +53,7 @@ with col_left:
         o_price = st.number_input("Giá (VNĐ - Bỏ qua nếu Market)", min_value=0.0, value=90.0, step=0.1)
         o_qty = st.number_input("Khối lượng", min_value=100, value=1000, step=100)
         
-        submitted = st.form_submit_button("🚀 Gửi lệnh vào hệ thống")
+        submitted = st.form_submit_button("Gửi lệnh vào hệ thống")
         if submitted:
             new_order = Order(
                 order_id=uuid.uuid4().hex[:6].upper(),
