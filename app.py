@@ -27,11 +27,8 @@ if 'engine' not in st.session_state:
     # portfolio giả lập (cấp vốn 100 triệu vnđ)
     st.session_state.balance = 100_000_000
 
-    st.session_state.portfolio = {
-        'FPT': 500,
-        'VNM': 500,
-        'VIC': 500
-    }
+    # Khởi tạo ví rỗng (chưa sở hữu cổ phiếu nào)
+    st.session_state.portfolio = {}
 
     # trade history
     st.session_state.trade_history = []
@@ -45,9 +42,9 @@ if 'engine' not in st.session_state:
         st.session_state.trie.insert(sym)
 
     # tạo dữ liệu mẫu với giá thực tế (hàng chục nghìn vnđ)
-    for _ in range(200):
+    for _ in range(500):
 
-        sym = random.choice(['FPT', 'VNM', 'VIC'])
+        sym = random.choice(symbols)
         side = random.choice(['BUY', 'SELL'])
 
         # giá ngẫu nhiên với bước giá 100 vnđ
@@ -131,124 +128,133 @@ with col_left:
     )
 
     # =========================
-    # ORDER FORM
+    # ORDER FORM (ĐÃ ĐƯỢC CHỈNH SỬA)
     # =========================
 
     st.divider()
 
     st.header("Đặt lệnh mới")
 
-    with st.form("order_form"):
+    # Đã bỏ "with st.form" để giao diện có thể phản hồi tức thì
+    o_side = st.radio(
+        "Chiều giao dịch",
+        ['BUY', 'SELL'],
+        horizontal=True
+    )
 
-        o_side = st.radio(
-            "Chiều giao dịch",
-            ['BUY', 'SELL'],
-            horizontal=True
-        )
+    o_type = st.radio(
+        "Loại lệnh",
+        ['LIMIT', 'MARKET'],
+        horizontal=True
+    )
 
-        o_type = st.radio(
-            "Loại lệnh",
-            ['LIMIT', 'MARKET'],
-            horizontal=True
-        )
+    # Logic kiểm tra: Nếu chọn MARKET thì is_market = True
+    is_market = (o_type == 'MARKET')
 
-        o_price = st.number_input(
-            "Giá (VNĐ - bỏ qua nếu Market)",
-            min_value=0.0,
-            value=90000.0,
-            step=100.0
-        )
+    o_price = st.number_input(
+        "Giá (VNĐ - bỏ qua nếu Market)",
+        min_value=0.0,
+        value=90000.0,
+        step=100.0,
+        disabled=is_market, # Khóa ô nếu là MARKET
+        help="Lệnh Market sẽ tự động khớp giá tốt nhất trên sổ lệnh." if is_market else "Nhập mức giá bạn mong muốn."
+    )
 
-        o_qty = st.number_input(
-            "Khối lượng",
-            min_value=100,
-            value=1000,
-            step=100
-        )
+    o_qty = st.number_input(
+        "Khối lượng",
+        min_value=100,
+        value=1000,
+        step=100
+    )
 
-        submitted = st.form_submit_button(
-            "Gửi lệnh vào hệ thống"
-        )
+    # Thay st.form_submit_button bằng st.button thông thường
+    submitted = st.button(
+        "Gửi lệnh vào hệ thống",
+        use_container_width=True
+    )
 
-        if submitted:
+    if submitted:
 
-            estimated_cost = o_price * o_qty
+        estimated_cost = o_price * o_qty
 
-            # =========================
-            # BUY ORDER
-            # =========================
+        # =========================
+        # BUY ORDER
+        # =========================
 
-            if o_side == "BUY":
+        if o_side == "BUY":
 
-                if st.session_state.balance < estimated_cost:
-                    st.error("❌ Không đủ số dư để đặt lệnh mua")
-                else:
-                    st.session_state.balance -= estimated_cost
-                    st.session_state.portfolio[selected_symbol] = st.session_state.portfolio.get(selected_symbol, 0) + o_qty
-
-                    new_order = Order(
-                        order_id=uuid.uuid4().hex[:6].upper(),
-                        symbol=selected_symbol,
-                        side=o_side,
-                        order_type=o_type,
-                        price=o_price,
-                        quantity=o_qty
-                    )
-
-                    start_t = time.perf_counter()
-                    st.session_state.engine.process_order(new_order)
-                    end_t = time.perf_counter()
-
-                    st.session_state.trade_history.append({
-                        "Thời Gian": time.strftime("%H:%M:%S"),
-                        "Mã CP": selected_symbol,
-                        "Loại": o_side,
-                        "Giá": f"{o_price:,.0f}",
-                        "Khối Lượng": f"{o_qty:,}"
-                    })
-
-                    st.success(f"✅ Khớp lệnh trong {(end_t - start_t)*1000:.4f} ms")
-                    st.rerun()
-
-            # =========================
-            # SELL ORDER (CHỈNH SỬA Ở ĐÂY)
-            # =========================
-
+            if not is_market and st.session_state.balance < estimated_cost:
+                st.error("❌ Không đủ số dư để đặt lệnh mua")
             else:
+                if not is_market:
+                    st.session_state.balance -= estimated_cost
+                
+                st.session_state.portfolio[selected_symbol] = st.session_state.portfolio.get(selected_symbol, 0) + o_qty
 
-                owned_qty = st.session_state.portfolio.get(selected_symbol, 0)
+                new_order = Order(
+                    order_id=uuid.uuid4().hex[:6].upper(),
+                    symbol=selected_symbol,
+                    side=o_side,
+                    order_type=o_type,
+                    price=o_price,
+                    quantity=o_qty
+                )
 
-                if owned_qty < o_qty:
-                    st.error("❌ Không đủ cổ phiếu để bán")
-                else:
-                    # Trừ cổ phiếu
-                    st.session_state.portfolio[selected_symbol] -= o_qty
-                    # Cộng tiền vào số dư (Balance)
+                start_t = time.perf_counter()
+                st.session_state.engine.process_order(new_order)
+                end_t = time.perf_counter()
+
+                st.session_state.trade_history.append({
+                    "Thời Gian": time.strftime("%H:%M:%S"),
+                    "Mã CP": selected_symbol,
+                    "Loại": f"BUY {o_type}",
+                    "Giá": "MARKET" if is_market else f"{o_price:,.0f}",
+                    "Khối Lượng": f"{o_qty:,}"
+                })
+
+                st.success(f"✅ Khớp lệnh trong {(end_t - start_t)*1000:.4f} ms")
+                st.rerun()
+
+        # =========================
+        # SELL ORDER
+        # =========================
+
+        else:
+
+            owned_qty = st.session_state.portfolio.get(selected_symbol, 0)
+
+            if owned_qty < o_qty:
+                st.error("❌ Không đủ cổ phiếu để bán")
+            else:
+                # Trừ cổ phiếu
+                st.session_state.portfolio[selected_symbol] -= o_qty
+                # Cộng tiền vào số dư (Balance)
+                if not is_market:
                     st.session_state.balance += estimated_cost
 
-                    new_order = Order(
-                        order_id=uuid.uuid4().hex[:6].upper(),
-                        symbol=selected_symbol,
-                        side=o_side,
-                        order_type=o_type,
-                        price=o_price,
-                        quantity=o_qty
-                    )
+                new_order = Order(
+                    order_id=uuid.uuid4().hex[:6].upper(),
+                    symbol=selected_symbol,
+                    side=o_side,
+                    order_type=o_type,
+                    price=o_price,
+                    quantity=o_qty
+                )
 
-                    start_t = time.perf_counter()
-                    st.session_state.engine.process_order(new_order)
-                    end_t = time.perf_counter()
+                start_t = time.perf_counter()
+                st.session_state.engine.process_order(new_order)
+                end_t = time.perf_counter()
 
-                    st.session_state.trade_history.append({
-                        "Thời Gian": time.strftime("%H:%M:%S"),
-                        "Mã CP": selected_symbol,
-                        "Loại": o_side,
-                        "Giá": f"{o_price:,.0f}",
-                        "Khối Lượng": f"{o_qty:,}"
-                    })
+                st.session_state.trade_history.append({
+                    "Thời Gian": time.strftime("%H:%M:%S"),
+                    "Mã CP": selected_symbol,
+                    "Loại": f"SELL {o_type}",
+                    "Giá": "MARKET" if is_market else f"{o_price:,.0f}",
+                    "Khối Lượng": f"{o_qty:,}"
+                })
 
-                    st.success(f"✅ Khớp lệnh/Thêm vào sổ thành công trong {(end_t - start_t)*1000:.4f} ms")
-                    st.rerun() # Gọi lại app để làm mới số dư trên UI ngay lập tức
+                st.success(f"✅ Khớp lệnh/Thêm vào sổ thành công trong {(end_t - start_t)*1000:.4f} ms")
+                st.rerun() # Gọi lại app để làm mới số dư trên UI ngay lập tức
 
 # =========================================================
 # RIGHT PANEL
@@ -418,67 +424,101 @@ with col_right:
         st.info("Chưa có giao dịch nào")
 
     # =====================================================
-    # CHART
+    # REAL-TIME CHARTS
     # =====================================================
 
     st.divider()
+    st.header("Phân tích Dữ liệu Real-time")
 
-    st.header(
-        "Phân tích Kỹ thuật"
-    )
+    tab1, tab2 = st.tabs(["📊 Độ sâu thị trường (Market Depth)", "📉 Biểu đồ Giá (Tick Chart)"])
 
-    # cập nhật nến với giá trị thật (nhân 1000)
-    dummy_candles = pd.DataFrame({
+    # --- TAB 1: ĐỘ SÂU THỊ TRƯỜNG (MARKET DEPTH) ---
+    with tab1:
+        st.caption("Trực quan hóa khối lượng lệnh chờ trực tiếp từ cấu trúc Heap.")
+        
+        if book:
+            # Quét Heap Bên Mua (Bid)
+            bid_data = []
+            for neg_price, ts, oid in book.buy_heap:
+                order = book.orders_map.get(oid)
+                if order and not order.is_canceled and order.quantity > 0:
+                    bid_data.append({"price": -neg_price, "qty": order.quantity})
+            
+            # Quét Heap Bên Bán (Ask)
+            ask_data = []
+            for price, ts, oid in book.sell_heap:
+                order = book.orders_map.get(oid)
+                if order and not order.is_canceled and order.quantity > 0:
+                    ask_data.append({"price": price, "qty": order.quantity})
+            
+            df_bid = pd.DataFrame(bid_data)
+            df_ask = pd.DataFrame(ask_data)
+            
+            fig_depth = go.Figure()
 
-        'Date': pd.date_range(
-            start='2026-05-01',
-            periods=10
-        ),
+            # Vẽ vùng Xanh (Lực Mua) - Cộng dồn khối lượng từ giá cao xuống thấp
+            if not df_bid.empty:
+                df_bid = df_bid.groupby('price').sum().reset_index().sort_values('price', ascending=False)
+                df_bid['cum_qty'] = df_bid['qty'].cumsum()
+                fig_depth.add_trace(go.Scatter(
+                    x=df_bid['price'], y=df_bid['cum_qty'],
+                    mode='lines', line=dict(color='#00ff00', width=2),
+                    fill='tozeroy', fillcolor='rgba(0, 255, 0, 0.2)',
+                    name='Lực Mua (Bids)'
+                ))
+            
+            # Vẽ vùng Đỏ (Lực Bán) - Cộng dồn khối lượng từ giá thấp lên cao
+            if not df_ask.empty:
+                df_ask = df_ask.groupby('price').sum().reset_index().sort_values('price')
+                df_ask['cum_qty'] = df_ask['qty'].cumsum()
+                fig_depth.add_trace(go.Scatter(
+                    x=df_ask['price'], y=df_ask['cum_qty'],
+                    mode='lines', line=dict(color='#ff4b4b', width=2),
+                    fill='tozeroy', fillcolor='rgba(255, 75, 75, 0.2)',
+                    name='Lực Bán (Asks)'
+                ))
 
-        'Open': [88000, 89000, 90000, 89000, 91000, 92000, 91000, 93000, 94000, 93000],
+            fig_depth.update_layout(
+                xaxis_title="Mức Giá (VNĐ)",
+                yaxis_title="Khối lượng tích lũy",
+                margin=dict(l=20, r=20, t=20, b=20),
+                height=350,
+                hovermode='x unified',
+                plot_bgcolor='rgba(0,0,0,0)' # Xóa nền lưới
+            )
+            st.plotly_chart(fig_depth, use_container_width=True)
+        else:
+            st.info("Chưa có lệnh chờ để vẽ biểu đồ.")
 
-        'High': [90000, 91000, 91000, 92000, 93000, 94000, 93000, 95000, 96000, 95000],
-
-        'Low': [87000, 88000, 88000, 88000, 90000, 91000, 90000, 92000, 92000, 91000],
-
-        'Close': [89000, 90000, 89000, 91000, 92000, 91000, 93000, 94000, 93000, 95000]
-    })
-
-    fig = go.Figure(data=[
-
-        go.Candlestick(
-
-            x=dummy_candles['Date'],
-
-            open=dummy_candles['Open'],
-
-            high=dummy_candles['High'],
-
-            low=dummy_candles['Low'],
-
-            close=dummy_candles['Close'],
-
-            increasing_line_color='green',
-
-            decreasing_line_color='red'
-        )
-    ])
-
-    fig.update_layout(
-
-        margin=dict(
-            l=20,
-            r=20,
-            t=20,
-            b=20
-        ),
-
-        height=350,
-
-        xaxis_rangeslider_visible=False
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
+    # --- TAB 2: BIỂU ĐỒ GIÁ KHỚP (TICK CHART) ---
+    with tab2:
+        st.caption("Đường giá được vẽ chính xác từ từng lệnh đã khớp thành công.")
+        
+        real_trades = [t for t in st.session_state.trade_history if t["Mã CP"] == selected_symbol]
+        
+        if real_trades:
+            # Lọc giá thật (Bỏ qua các lệnh Market không có giá cụ thể lưu lại để vẽ biểu đồ)
+            prices = [float(t["Giá"].replace(',', '')) for t in real_trades if t["Giá"] != "MARKET"]
+            
+            if prices:
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(
+                    y=prices,
+                    mode='lines+markers',
+                    name='Giá khớp',
+                    line=dict(color='#00d2ff', width=2),
+                    marker=dict(size=6, color='#00d2ff')
+                ))
+                
+                fig_line.update_layout(
+                    xaxis_title="Thứ tự giao dịch (Cũ -> Mới)",
+                    yaxis_title="Giá khớp (VNĐ)",
+                    margin=dict(l=20, r=20, t=20, b=20),
+                    height=350,
+                    plot_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig_line, use_container_width=True)
+            else:
+                st.info("Chưa có đủ dữ liệu giá cụ thể để vẽ đường đồ thị.")
+        else:
+            st.info("Chưa có lệnh nào được khớp cho mã này.")
