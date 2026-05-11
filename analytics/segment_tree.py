@@ -1,12 +1,12 @@
 class SegmentTree:
     """
-    cấu trúc dữ liệu segment tree dùng để phân tích kỹ thuật (Technical Analysis).
-    xử lý các truy vấn khoảng (Range Queries) cho: Max Price, Min Price, Total Volume.
+    Cấu trúc dữ liệu Segment Tree dùng để phân tích kỹ thuật (Technical Analysis).
+    Xử lý các truy vấn khoảng (Range Queries) cho: Max Price, Min Price, Total Volume.
     """
     def __init__(self, data: list):
         """
-        khởi tạo segment tree từ mảng dữ liệu lịch sử nến (candles).
-        data là danh sách các dict chứa: {'high': float, 'low': float, 'volume': int}
+        Khởi tạo Segment Tree từ mảng dữ liệu lịch sử nến (candles).
+        Data là danh sách các dict chứa: {'high': float, 'low': float, 'volume': int}
         """
         self.n = len(data)
         # mảng 4N là kích thước an toàn tối đa cho segment tree
@@ -16,9 +16,9 @@ class SegmentTree:
 
     def _build(self, data: list, node: int, start: int, end: int) -> None:
         """
-        [hàm nội bộ] đệ quy xây dựng cây từ dưới lên.
+        [Hàm nội bộ] Đệ quy xây dựng cây từ dưới lên.
         
-        Time Complexity: O(N) - chỉ tốn thời gian ở bước khởi tạo ban đầu.
+        Time Complexity: O(N) - Chỉ tốn thời gian ở bước khởi tạo ban đầu.
         """
         if start == end:
             # lá của cây chứa dữ liệu của 1 thời điểm cụ thể
@@ -44,7 +44,7 @@ class SegmentTree:
 
     def _query(self, node: int, start: int, end: int, l: int, r: int) -> dict:
         """
-        [hàm nội bộ] đệ quy truy vấn dữ liệu.
+        [Hàm nội bộ] Đệ quy truy vấn dữ liệu.
         """
         # trường hợp nằm hoàn toàn ngoài khoảng truy vấn
         if r < start or end < l:
@@ -67,14 +67,14 @@ class SegmentTree:
 
     def query_range(self, l: int, r: int) -> dict:
         """
-        truy vấn khoảng: lấy giá cao nhất, thấp nhất và tổng khối lượng từ thời điểm L đến R.
+        Truy vấn khoảng: Lấy giá cao nhất, thấp nhất và tổng khối lượng từ thời điểm L đến R.
         
         Args:
-            l: index bắt đầu.
-            r: index kết thúc.
+            l: Index bắt đầu.
+            r: Index kết thúc.
             
-        Time Complexity: O(log N) - cực kỳ nhanh, đáp ứng realtime cho biểu đồ.
+        Time Complexity: O(log N) - Cực kỳ nhanh, đáp ứng realtime cho biểu đồ.
         """
         if l < 0 or r >= self.n or l > r:
-            raise ValueError("khoảng truy vấn không hợp lệ")
+            raise ValueError("Khoảng truy vấn không hợp lệ")
         return self._query(0, 0, self.n - 1, l, r)
