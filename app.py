@@ -7,7 +7,7 @@ import time
 
 from core.order import Order
 from core.engine import MatchingEngine
-from analytics.trie import Trie
+from core.trie import Trie
 
 st.set_page_config(
     page_title="Stock Matching Engine",
