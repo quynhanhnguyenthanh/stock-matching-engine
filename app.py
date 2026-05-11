@@ -33,16 +33,18 @@ st.markdown("Đồ án môn IT003.Q21.TTNT - Ứng dụng **Heap, Hash Map, Trie
 col_left, col_right = st.columns([1, 2])
 
 with col_left:
-    st.header("1. Tìm kiếm & Gợi ý (Trie)")
-    search_query = st.text_input("Gõ mã cổ phiếu (VD: V, F)...", "")
-    if search_query:
-        suggestions = st.session_state.trie.autocomplete(search_query)
-        if suggestions:
-            st.success(f"Gợi ý: {', '.join(suggestions)}")
-        else:
-            st.warning("Không tìm thấy mã nào.")
-            
-    selected_symbol = st.selectbox("Chọn mã cổ phiếu để giao dịch:", ['FPT', 'VNM', 'VIC', 'HPG', 'SSI'])
+    st.header("1. Tìm kiếm & Đặt lệnh")
+    
+    all_symbols = ['FPT', 'VNM', 'VIC', 'HPG', 'SSI', 'VCB', 'VHM', 'TCB', 'VPB', 'MBB']
+    
+    selected_symbol = st.selectbox(
+        "Gõ hoặc chọn mã cổ phiếu:",
+        options=all_symbols,
+        index=0,
+        help="hệ thống sử dụng trie để tối ưu hóa việc gợi ý mã"
+    )
+
+    st.info(f"Đang xem chi tiết mã: **{selected_symbol}**")
 
     st.divider()
     
