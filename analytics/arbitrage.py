@@ -2,12 +2,12 @@ import math
 
 class ArbitrageDetector:
     """
-    công cụ phát hiện cơ hội kinh doanh chênh lệch giá (Arbitrage) 
+    Công cụ phát hiện cơ hội kinh doanh chênh lệch giá (Arbitrage) 
     dựa trên đồ thị có hướng và thuật toán Bellman-Ford.
     """
     def __init__(self, symbols: list):
         """
-        khởi tạo đồ thị với danh sách các loại tài sản/tiền tệ (đỉnh).
+        Khởi tạo đồ thị với danh sách các loại tài sản/tiền tệ (đỉnh).
         """
         self.symbols = symbols
         # lưu trữ tỷ giá gốc: graph[u][v] = rate
@@ -15,7 +15,7 @@ class ArbitrageDetector:
 
     def add_exchange_rate(self, base: str, quote: str, rate: float) -> None:
         """
-        cập nhật tỷ giá hối đoái. ví dụ: base='USD', quote='VND', rate=25000
+        Cập nhật tỷ giá hối đoái. Ví dụ: base='USD', quote='VND', rate=25000
         """
         if rate <= 0:
             return
@@ -23,13 +23,13 @@ class ArbitrageDetector:
 
     def detect_arbitrage(self) -> list:
         """
-        thuật toán Bellman-Ford để tìm chu trình âm (Negative Cycle).
+        Thuật toán Bellman-Ford để tìm chu trình âm (Negative Cycle).
         
-        toán học đằng sau:
-            ta muốn tìm chu trình sao cho: R1 * R2 * ... * Rn > 1 (lời).
-            logarit 2 vế: log(R1) + log(R2) + ... + log(Rn) > 0.
-            nhân với -1: -log(R1) - log(R2) - ... - log(Rn) < 0.
-            => bài toán biến thành tìm "chu trình có tổng trọng số âm" trên đồ thị.
+        Toán học đằng sau:
+            Ta muốn tìm chu trình sao cho: R1 * R2 * ... * Rn > 1 (lời).
+            Logarit 2 vế: log(R1) + log(R2) + ... + log(Rn) > 0.
+            Nhân với -1: -log(R1) - log(R2) - ... - log(Rn) < 0.
+            => Bài toán biến thành tìm "chu trình có tổng trọng số âm" trên đồ thị.
             
         Time Complexity: 
             O(V * E) - V là số đỉnh (tài sản), E là số cạnh (cặp tỷ giá).
