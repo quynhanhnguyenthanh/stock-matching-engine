@@ -29,11 +29,7 @@ if 'engine' not in st.session_state:
     for _ in range(500):
         sym = random.choice(symbols)
         side = random.choice(['BUY', 'SELL'])
-        price = float(
-            random.randrange(80000, 100000, 100)
-            if sym == 'FPT'
-            else random.randrange(50000, 70000, 100)
-        )
+        price = float(random.randrange(80000, 100000, 100) if sym == 'FPT' else random.randrange(50000, 70000, 100))
         qty = random.randint(1, 50) * 100
         order = Order(uuid.uuid4().hex[:6], sym, side, 'LIMIT', price, qty)
         st.session_state.engine.process_order(order)
@@ -45,12 +41,10 @@ with col_left:
     st.header("Tìm kiếm & Đặt lệnh")
     all_symbols = ['FPT', 'VNM', 'VIC', 'HPG', 'SSI', 'VCB', 'VHM', 'TCB', 'VPB', 'MBB']
     selected_symbol = st.selectbox("Chọn mã cổ phiếu:", options=all_symbols, index=0)
-    st.info(f"Đang xem chi tiết mã: **{selected_symbol}**")
-
+    
     st.divider()
     st.header("Portfolio Giả Lập")
     st.metric(label="Số dư hiện có", value=f"{st.session_state.balance:,.0f} VNĐ")
-
     portfolio_data = [{"Mã": sym, "Sở Hữu": qty} for sym, qty in st.session_state.portfolio.items() if qty > 0]
     st.dataframe(pd.DataFrame(portfolio_data), use_container_width=True, hide_index=True)
 
@@ -59,43 +53,53 @@ with col_left:
     o_side = st.radio("Chiều giao dịch", ['BUY', 'SELL'], horizontal=True)
     o_type = st.radio("Loại lệnh", ['LIMIT', 'MARKET'], horizontal=True)
     is_market = (o_type == 'MARKET')
-
     o_price = st.number_input("Giá (VNĐ)", min_value=0.0, value=90000.0, step=100.0, disabled=is_market)
     o_qty = st.number_input("Khối lượng", min_value=100, value=1000, step=100)
     submitted = st.button("Gửi lệnh vào hệ thống", use_container_width=True)
 
     if submitted:
         book = st.session_state.engine.order_books.get(selected_symbol)
-        exec_price = o_price
         
         if o_side == "BUY":
-            if is_market:
-                if book and book.sell_heap:
-                    exec_price = book.sell_heap[0][0] 
-                else:
-                    st.error("❌ Không thể khớp lệnh Market Buy: Sổ lệnh trống")
-                    st.stop()
+            total_cost = 0.0
+            remaining_to_fill = o_qty
             
-            total_cost = exec_price * o_qty
+            if is_market:
+                if not book or not book.sell_heap:
+                    st.error("❌ Không có người bán để khớp lệnh Market")
+                    st.stop()
+                
+                sorted_asks = sorted(book.sell_heap, key=lambda x: x[0])
+                for p, ts, oid in sorted_asks:
+                    ord_item = book.orders_map.get(oid)
+                    if ord_item:
+                        fill = min(remaining_to_fill, ord_item.quantity)
+                        total_cost += fill * p
+                        remaining_to_fill -= fill
+                        if remaining_to_fill <= 0: break
+                
+                if remaining_to_fill > 0:
+                    st.warning(f"⚠️ Chỉ có thể khớp {o_qty - remaining_to_fill} cổ phiếu do thiếu thanh khoản.")
+            else:
+                total_cost = o_price * o_qty
+
             if st.session_state.balance < total_cost:
-                st.error(f"❌ Không đủ số dư. Cần {total_cost:,.0f} VNĐ")
+                st.error(f"❌ Không đủ tiền. Cần {total_cost:,.0f} VNĐ")
             else:
                 st.session_state.balance -= total_cost
-                st.session_state.portfolio[selected_symbol] = st.session_state.portfolio.get(selected_symbol, 0) + o_qty
-                new_order = Order(uuid.uuid4().hex[:6].upper(), selected_symbol, o_side, o_type, exec_price, o_qty)
+                qty_actually_bought = o_qty - (remaining_to_fill if is_market else 0)
+                st.session_state.portfolio[selected_symbol] = st.session_state.portfolio.get(selected_symbol, 0) + qty_actually_bought
                 
-                start_t = time.perf_counter()
+                new_order = Order(uuid.uuid4().hex[:6].upper(), selected_symbol, o_side, o_type, o_price if not is_market else (total_cost/qty_actually_bought), qty_actually_bought)
                 st.session_state.engine.process_order(new_order)
-                end_t = time.perf_counter()
-
+                
                 st.session_state.trade_history.append({
                     "Thời Gian": time.strftime("%H:%M:%S"),
                     "Mã CP": selected_symbol,
                     "Loại": f"BUY {o_type}",
-                    "Giá": f"{exec_price:,.0f}",
-                    "Khối Lượng": f"{o_qty:,}"
+                    "Giá": f"Avg: {total_cost/qty_actually_bought:,.0f}" if is_market else f"{o_price:,.0f}",
+                    "Khối Lượng": f"{qty_actually_bought:,}"
                 })
-                st.success(f"✅ Thành công trong {(end_t - start_t)*1000:.4f} ms")
                 st.rerun()
 
         else:
@@ -103,91 +107,89 @@ with col_left:
             if owned_qty < o_qty:
                 st.error("❌ Không đủ cổ phiếu để bán")
             else:
+                total_gain = 0.0
+                remaining_to_fill = o_qty
+                
                 if is_market:
-                    if book and book.buy_heap:
-                        exec_price = -book.buy_heap[0][0]
-                    else:
-                        st.error("❌ Không thể khớp lệnh Market Sell: Sổ lệnh trống")
+                    if not book or not book.buy_heap:
+                        st.error("❌ Không có người mua để khớp lệnh Market")
                         st.stop()
+                    
+                    sorted_bids = sorted(book.buy_heap, key=lambda x: x[0]) # buy_heap lưu giá âm nên x[0] nhỏ nhất là giá cao nhất
+                    for neg_p, ts, oid in sorted_bids:
+                        ord_item = book.orders_map.get(oid)
+                        if ord_item:
+                            fill = min(remaining_to_fill, ord_item.quantity)
+                            total_gain += fill * (-neg_p)
+                            remaining_to_fill -= fill
+                            if remaining_to_fill <= 0: break
+                else:
+                    total_gain = o_price * o_qty
 
-                st.session_state.portfolio[selected_symbol] -= o_qty
-                st.session_state.balance += (exec_price * o_qty)
-                new_order = Order(uuid.uuid4().hex[:6].upper(), selected_symbol, o_side, o_type, exec_price, o_qty)
-
-                start_t = time.perf_counter()
+                qty_actually_sold = o_qty - (remaining_to_fill if is_market else 0)
+                st.session_state.portfolio[selected_symbol] -= qty_actually_sold
+                st.session_state.balance += total_gain
+                
+                new_order = Order(uuid.uuid4().hex[:6].upper(), selected_symbol, o_side, o_type, o_price if not is_market else (total_gain/qty_actually_sold), qty_actually_sold)
                 st.session_state.engine.process_order(new_order)
-                end_t = time.perf_counter()
 
                 st.session_state.trade_history.append({
                     "Thời Gian": time.strftime("%H:%M:%S"),
                     "Mã CP": selected_symbol,
                     "Loại": f"SELL {o_type}",
-                    "Giá": f"{exec_price:,.0f}",
-                    "Khối Lượng": f"{o_qty:,}"
+                    "Giá": f"Avg: {total_gain/qty_actually_sold:,.0f}" if is_market else f"{o_price:,.0f}",
+                    "Khối Lượng": f"{qty_actually_sold:,}"
                 })
-                st.success(f"✅ Thành công trong {(end_t - start_t)*1000:.4f} ms")
                 st.rerun()
 
 with col_right:
     st.header(f"Sổ Lệnh - {selected_symbol}")
     book = st.session_state.engine.order_books.get(selected_symbol)
-
     if not book:
         st.info("Sổ lệnh trống.")
     else:
         asks = []
-        for price, ts, oid in book.sell_heap:
-            order = book.orders_map.get(oid)
-            if order and not order.is_canceled and order.quantity > 0:
-                asks.append({"Giá Bán": f"{order.price:,.0f}", "Khối Lượng": f"{order.quantity:,}", "ID": oid})
-        df_asks = pd.DataFrame(asks).sort_values("Giá Bán").head(5) if asks else pd.DataFrame(columns=["Giá Bán", "Khối Lượng", "ID"])
+        for p, ts, oid in book.sell_heap:
+            ord_obj = book.orders_map.get(oid)
+            if ord_obj and ord_obj.quantity > 0:
+                asks.append({"Giá": ord_obj.price, "KL": ord_obj.quantity, "ID": oid})
+        df_asks = pd.DataFrame(asks).sort_values("Giá").head(5)
 
         bids = []
-        for neg_price, ts, oid in book.buy_heap:
-            order = book.orders_map.get(oid)
-            if order and not order.is_canceled and order.quantity > 0:
-                bids.append({"Giá Mua": f"{-neg_price:,.0f}", "Khối Lượng": f"{order.quantity:,}", "ID": oid})
-        df_bids = pd.DataFrame(bids).sort_values("Giá Mua", ascending=False).head(5) if bids else pd.DataFrame(columns=["Giá Mua", "Khối Lượng", "ID"])
+        for np, ts, oid in book.buy_heap:
+            ord_obj = book.orders_map.get(oid)
+            if ord_obj and ord_obj.quantity > 0:
+                bids.append({"Giá": ord_obj.price, "KL": ord_obj.quantity, "ID": oid})
+        df_bids = pd.DataFrame(bids).sort_values("Giá", ascending=False).head(5)
 
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown("<h4 style='color: green; text-align: center;'>BÊN MUA (BID)</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='color:green;text-align:center;'>BÊN MUA</h4>", unsafe_allow_html=True)
             st.dataframe(df_bids, use_container_width=True, hide_index=True)
         with c2:
-            st.markdown("<h4 style='color: red; text-align: center;'>BÊN BÁN (ASK)</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='color:red;text-align:center;'>BÊN BÁN</h4>", unsafe_allow_html=True)
             st.dataframe(df_asks, use_container_width=True, hide_index=True)
 
     st.divider()
     st.header("Lịch sử khớp lệnh")
     if st.session_state.trade_history:
         st.dataframe(pd.DataFrame(st.session_state.trade_history[-20:][::-1]), use_container_width=True, hide_index=True)
-    else:
-        st.info("Chưa có giao dịch.")
 
     st.divider()
     st.header("Phân tích Dữ liệu")
     tab1, tab2 = st.tabs(["📊 Độ sâu thị trường", "📉 Biểu đồ Giá"])
-
     with tab1:
         if book:
-            bid_d = [{"price": -p, "qty": book.orders_map[o].quantity} for p, t, o in book.buy_heap if o in book.orders_map]
-            ask_d = [{"price": p, "qty": book.orders_map[o].quantity} for p, t, o in book.sell_heap if o in book.orders_map]
-            fig_depth = go.Figure()
-            if bid_d:
-                df_b = pd.DataFrame(bid_d).groupby('price').sum().reset_index().sort_values('price', ascending=False)
-                df_b['cum_qty'] = df_b['qty'].cumsum()
-                fig_depth.add_trace(go.Scatter(x=df_b['price'], y=df_b['cum_qty'], fill='tozeroy', name='Bids', line=dict(color='green')))
-            if ask_d:
-                df_a = pd.DataFrame(ask_d).groupby('price').sum().reset_index().sort_values('price')
-                df_a['cum_qty'] = df_a['qty'].cumsum()
-                fig_depth.add_trace(go.Scatter(x=df_a['price'], y=df_a['cum_qty'], fill='tozeroy', name='Asks', line=dict(color='red')))
-            fig_depth.update_layout(height=350, margin=dict(l=0, r=0, t=0, b=0))
-            st.plotly_chart(fig_depth, use_container_width=True)
-
-    with tab2:
-        real_trades = [t for t in st.session_state.trade_history if t["Mã CP"] == selected_symbol]
-        if real_trades:
-            prices = [float(t["Giá"].replace(',', '')) for t in real_trades]
-            fig_line = go.Figure(go.Scatter(y=prices, mode='lines+markers', line=dict(color='#00d2ff')))
-            fig_line.update_layout(height=350, margin=dict(l=0, r=0, t=0, b=0))
-            st.plotly_chart(fig_line, use_container_width=True)
+            b_d = [{"p": -p, "q": book.orders_map[o].quantity} for p, t, o in book.buy_heap if o in book.orders_map]
+            a_d = [{"p": p, "q": book.orders_map[o].quantity} for p, t, o in book.sell_heap if o in book.orders_map]
+            fig = go.Figure()
+            if b_d:
+                df_b = pd.DataFrame(b_d).groupby('p').sum().reset_index().sort_values('p', ascending=False)
+                df_b['cum'] = df_b['q'].cumsum()
+                fig.add_trace(go.Scatter(x=df_b['p'], y=df_b['cum'], fill='tozeroy', name='Bids', line=dict(color='green')))
+            if a_d:
+                df_a = pd.DataFrame(a_d).groupby('p').sum().reset_index().sort_values('p')
+                df_a['cum'] = df_a['q'].cumsum()
+                fig.add_trace(go.Scatter(x=df_a['p'], y=df_a['cum'], fill='tozeroy', name='Asks', line=dict(color='red')))
+            fig.update_layout(height=300, margin=dict(l=0,r=0,t=0,b=0))
+            st.plotly_chart(fig, use_container_width=True)
