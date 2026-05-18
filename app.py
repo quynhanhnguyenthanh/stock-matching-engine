@@ -3,11 +3,13 @@ import pandas as pd
 import plotly.graph_objects as go
 import uuid
 import random
-import time
+from datetime import datetime, timezone, timedelta
 
 from core.order import Order
 from core.engine import MatchingEngine
 from core.trie import Trie
+
+VN_TZ = timezone(timedelta(hours=7))
 
 st.set_page_config(
     page_title="Stock Matching Engine",
@@ -94,7 +96,7 @@ with col_left:
                 st.session_state.engine.process_order(new_order)
                 
                 st.session_state.trade_history.append({
-                    "Thời Gian": time.strftime("%H:%M:%S"),
+                    "Thời Gian": datetime.now(VN_TZ).strftime("%H:%M:%S"),
                     "Mã CP": selected_symbol,
                     "Loại": f"BUY {o_type}",
                     "Giá": f"Avg: {total_cost/qty_actually_bought:,.0f}" if is_market else f"{o_price:,.0f}",
@@ -134,7 +136,7 @@ with col_left:
                 st.session_state.engine.process_order(new_order)
 
                 st.session_state.trade_history.append({
-                    "Thời Gian": time.strftime("%H:%M:%S"),
+                    "Thời Gian": datetime.now(VN_TZ).strftime("%H:%M:%S"),
                     "Mã CP": selected_symbol,
                     "Loại": f"SELL {o_type}",
                     "Giá": f"Avg: {total_gain/qty_actually_sold:,.0f}" if is_market else f"{o_price:,.0f}",
